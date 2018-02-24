@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Drag And Drop Demo</title>
+        
+        <style type="text/css">
+            
+            @keyframes example {
+                from {
+                    transform: translate(-100px, 0px);
+       animation-timing-function:ease-in-out
+                  }
+
+                  to {
+                    transform: translate(0px, -100px);
+       animation-timing-function:ease-in-out
+                  }
+            }
+            
+            body {
+                margin: 0px;
+                background-color: #CCCCCC;
+                background-color: #848484;
+            }
+            
+            #base {
+                position: relative;
+                width: 100vw;
+                max-width: 100vh;
+                height: 100vh;
+                max-height: 100vw;
+                margin: auto;
+                border-radius: calc(2.5vw);
+                overflow: hidden;
+            }
+            #base::before {
+                content: "";
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(-60deg, #282828, #D6D6D5);
+                opacity: 0.5;
+            }
+
+            @media only screen and (orientation : portrait) {
+                #base {
+                    top: calc((100vh - 100vw) / 2);
+                }
+            }
+            @media only screen and (orientation : landscape) {
+                body, html {
+                    background: radial-gradient(at 43.75% 27%, #D6D6D5 0%, #D6D6D5 25%, #141414 100%);
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                }
+            }
+            
+            .outer_target {
+                position: absolute;
+                width: 20%;
+                height: 20%;
+                border-radius: calc(10vw);
+                background: radial-gradient(#B6B6B5, #CCCCCB);
+            }
+            .outer_target.left {
+                left: 5%;
+            }
+            .outer_target.top {
+                top: 5%;
+            }
+            .outer_target.right {
+                right: 5%;
+            }
+            .outer_target.bottom {
+                bottom: 5%;
+            }
+            .outer_target.center {
+                left: 40%;
+                top: 40%;
+            }
+            
+            .target {
+                position: relative;
+                left: 14.5%;
+                top: 14.5%;
+                width: 71%;
+                height: 71%;
+            }
+            
+            .draggable {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                border-radius: calc(7vw);
+            }
+            .draggable.white {
+                background: radial-gradient(#E6E6E5, white);
+            }
+            .draggable.black {
+                background: radial-gradient(#181818, black);
+                transition: transform 0.666s;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="late_links.css">
+    </head>
+    <body ondragstart="return false;" ondrop="return false;">
+        
+        <div id="base">
+            <div class="outer_target left top">
+                <div class="target">
+                    <div class="draggable white"></div>
+                </div>
+            </div>
+            <div class="outer_target right top">
+                <div class="target"></div>
+            </div>
+            <div class="outer_target center">
+                <div class="target"></div>
+            </div>
+            <div class="outer_target left bottom">
+                <div class="target">
+                    <div class="draggable white"></div>
+                </div>
+            </div>
+            <div class="outer_target right bottom">
+                <div class="target">
+                    <div class="draggable black"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="aside">
+            <div class="square_link" onclick="location.href='swap.html'"></div>
+        </div>
+        <div class="aside right">
+            <div class="square_link right" onclick="location.href='radial.html'"></div>
+        </div>
+        
+        <script type="text/javascript">
+            
+            function Machine (element) {
+                
+                var target;
+                
+                function get_offset (src, tgt) {
+                    var src_coordinates = src.getBoundingClientRect();
+                    var tgt_coordinates = tgt.getBoundingClientRect();
+                    var left = parseInt(src_coordinates.left - tgt_coordinates.left);
+                    var top = parseInt(src_coordinates.top - tgt_coordinates.top);
+                    return [left, top];
+                }
+                
+                function animate (cloned, coordinates) {
+                    cloned.style.transform = "translate(" + (0 - coordinates[0]) + "px, " + (0 - coordinates[1]) + "px)";
+                    cloned.addEventListener("transitionend", finish, true);
+                }
+                
+                function finish (ev) {
+                    ev.target.removeEventListener("transitionend", finish, true);
+                    ev.target.parentNode.removeChild(ev.target);
+                    target.appendChild(element);
+                    element.style.visibility = "visible";
+                    target = null;
+                    next_move();
+                }
+                
+                function clone () {
+                    var cloned = element.cloneNode(true);
+                    cloned.style.visibility = "visible";
+                    cloned.style.zIndex = 1;
+                    var coordinates = get_offset(element, target);
+                    cloned.style.left = coordinates[0] + "px";
+                    cloned.style.top = coordinates[1] + "px";
+                    target.appendChild(cloned);
+                    setTimeout(animate, 41, cloned, coordinates);
+                }
+                
+                this.move = function (targets) {
+                    var random_index = Math.floor(Math.random() * targets.length);
+                    target = targets[random_index];
+                    element.style.visibility = "hidden";
+                    clone();
+                };
+            }
+            
+            var Human = (function () {
+                
+                var playground = document.getElementById("base");
+                
+                function Mousedriven () {
+                    
+                    function remove_events (element) {
+                        playground.removeEventListener("mouseup", element.mouseup, false);
+                        playground.removeEventListener("mouseleave", element.mouseleave, false);
+                        playground.removeEventListener("mousemove", element.mousemove, false);
+                        
+                        if ( element.cloned && element.cloned.parentNode ) {
+                            element.cloned.removeEventListener("mouseup", element.mouseup, false);
+                            element.cloned.removeEventListener("mousemove", element.mousemove, false);
+                            element.cloned.parentNode.removeChild(element.cloned);
+                        }
+                        element.style.visibility = "visible";
+                    }
+                    
+                    function mousedown (ev) {
+                        var element = ev.target;
+                        var size = element.get_size();
+                        element.start(ev.pageX, ev.pageY, size);
+
+                        element.mousemove = function (ev) {
+                            element.move(ev.pageX, ev.pageY, size, remove_events);
+                        };
+                        playground.addEventListener("mousemove", element.mousemove, false);
+                        element.cloned.addEventListener("mousemove", element.mousemove, false);
+                        
+                        element.mouseup = function (ev) {
+                            mouseup(ev, element);
+                        };
+                        playground.addEventListener("mouseup", element.mouseup, false);
+                        element.cloned.addEventListener("mouseup", element.mouseup, false);
+                        
+                        element.mouseleave = function (ev) {
+                            mouseleave(ev, element);
+                        };
+                        playground.addEventListener("mouseleave", element.mouseleave, false);
+
+                        element.style.visibility = "hidden";
+                    }
+                    function mouseup (ev, element) {
+                        element.end(ev.pageX, ev.pageY);
+                        remove_events(element);
+                    }
+                    function mouseleave (ev, element) {
+                        if ( !ev.explicitOriginalTarget || ev.explicitOriginalTarget == element )
+                            return;
+                        if ( ev.pageX && ev.pageY )
+                            element.end(ev.pageX, ev.pageY);
+                        else
+                            element.end(-666, -666);
+                        remove_events(element);
+                    }
+                    
+                    this.initialise_events = function (element) {
+                        element.style.cursor = "pointer";
+                        element.addEventListener("mousedown", mousedown, false);
+                    };
+                    this.reset_events = function (element) {
+                        element.style.cursor = "default";
+                        element.removeEventListener("mousedown", mousedown, false);
+                    };
+                    
+                }
+                function Touchdriven () {
+                    
+                    function remove_events (element) {
+                        
+                        playground.removeEventListener("touchcancel", element.touchcancel, false);
+                        element.removeEventListener("touchmove", element.touchmove, false);
+                        
+                        if ( element.cloned && element.cloned.parentNode ) {
+                            element.cloned.parentNode.removeChild(element.cloned);
+                        }
+                        element.style.visibility = "visible";
+                    }
+                    
+                    function touchstart (ev) {
+                        ev.preventDefault();
+                        var element = ev.touches[0].target;
+                        var size = element.get_size();
+                        
+                        element.start(ev.pageX, ev.pageY, size);
+                        
+                        element.touchcancel = function (ev) {
+                            touchcancel(ev, element);
+                        };
+                        playground.addEventListener("touchcancel", element.touchcancel, false);
+                        
+                        element.touchmove = function (ev) {
+                            var touch = ev.targetTouches[0];
+                            element.move(touch.pageX, touch.pageY, size, remove_events);
+                        };
+                        element.addEventListener("touchmove", element.touchmove, false);
+                        
+                        element.style.visibility = "hidden";
+                    }
+                    function touchend (ev) {
+                        var touches = ev.changedTouches[0];
+			var element = ev.changedTouches[0].target;
+                        
+                        element.end(touches.clientX, touches.clientY);
+                        remove_events(element);
+                    }
+                    function touchcancel (ev, element) {
+                        remove_events(element);
+                    }
+                    
+                    
+                    this.initialise_events = function (element) {
+                        element.addEventListener("touchstart", touchstart, false);
+                        element.addEventListener("touchend", touchend, false);
+                    };
+                    this.reset_events = function (element) {
+                        element.removeEventListener("touchstart", touchstart, false);
+                        element.removeEventListener("touchend", touchend, false);
+                    };
+                }
+                
+                var utilities;
+                if( navigator.userAgent.match(/android|iphone|ipad|mobile|surface/i) ) {
+                    try {
+                        var dummy = new TouchEvent("touchstart");
+                        utilities = new Touchdriven();
+                    }
+                    catch (e) {}
+                }
+                if ( !utilities )
+                    utilities = new Mousedriven();
+                
+                return function (element) {
+                    
+                    var targets;
+                    
+                    function start (pageX, pageY, size) {                        
+                        element.cloned = element.cloneNode(true);
+                        element.cloned.style.position = "absolute";
+                        element.cloned.style.width = size.w + "px";
+                        element.cloned.style.height = size.h + "px";
+                        element.cloned.style.zIndex = 1;                        
+                        element.cloned.style.left = (pageX - size.center_x) + "px";
+                        element.cloned.style.top = (pageY - size.center_y) + "px";
+                        document.body.appendChild(element.cloned);
+                    }
+                    function move (pageX, pageY, size, abort_fnc) {
+                        if ( !element.cloned ) {
+                            abort_fnc(element);
+                            return;
+                        }
+                        element.cloned.style.left = (pageX - size.center_x) + "px";
+                        element.cloned.style.top = (pageY - size.center_y) + "px";
+                    }
+                    function end (pageX, pageY) {
+                        var rect;
+                        for ( var i = 0; i < targets.length; i++ ) {
+                            rect = targets[i].getBoundingClientRect();
+                            if ( pageX > rect.left && pageY > rect.top && pageX < rect.right && pageY < rect.bottom ) {
+                                targets[i].appendChild(element);
+                                targets = null;
+                                next_move();
+                                return;
+                            }
+                        }
+                    }
+                    function get_size () {
+                        var rect = element.getBoundingClientRect();
+                        return {w: Math.round(rect.width), h: Math.round(rect.height), center_x: parseInt(rect.width / 2), center_y: parseInt(rect.height / 2)};
+                    }
+                    element.start = start;
+                    element.move = move;
+                    element.end = end;
+                    element.get_size = get_size;
+                    
+                    this.move = function (t) {
+                        targets = t;
+                        utilities.initialise_events(element);
+                    };
+                    this.reset = function () {
+                        utilities.reset_events(element);
+                    };
+                };
+            })();
+            
+            /*  */
+            
+            var i;
+            
+            var draggables = document.getElementsByClassName("draggable");
+            var humans = [];
+            var machines = [];
+            for ( i = 0; i < draggables.length; i++ ) {
+                if ( draggables[i].classList[1] == "black" ) {
+                    machines.push( new Machine(draggables[i]) );
+                }
+                else {
+                    if ( draggables[i].classList[1] == "white" )
+                        humans.push( new Human(draggables[i]) );
+                }
+            }
+            
+            function get_targets () {
+                
+                var raw_targets = document.getElementsByClassName("target");
+                var targets = [];
+                for ( var i = 0; i < raw_targets.length; i++ ) {
+                    if ( !raw_targets[i].querySelector(".draggable") )
+                        targets.push(raw_targets[i]);
+                }
+                
+                return targets;
+            }
+            
+            var next_move = (function () {
+                var moving_actually = machines;
+                var links_visible = false;
+                return function () {
+                    moving_actually = (moving_actually == machines) ? humans : machines;
+                    var targets = get_targets();
+                    var i;
+                    if ( moving_actually == humans ) {
+                        for ( i = 0; i < humans.length; i++ ) {
+                            humans[i].move(targets);
+                        }
+                    }
+                    else {
+                        if ( !links_visible ) {
+                            var elements = document.getElementsByClassName("aside");
+                            for ( var i = 0; i < elements.length; i++ )
+                                elements[i].style.display = "block";
+                            setTimeout(function (elements) {
+                                for ( var i = 0; i < elements.length; i++ )
+                                    elements[i].classList.add("fading");
+                            }, 5000, elements);
+                        }
+                        links_visible = true;
+                        var random_index = Math.floor(Math.random() * machines.length);
+                        machines[random_index].move(targets);
+                        for ( i = 0; i < humans.length; i++ )
+                            humans[i].reset();
+                    }
+                };
+            })();
+            
+            next_move();
+            
+            
+            
+        </script>
+        
+    </body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Drag And Swap Demo</title>
+        
+        <style type="text/css">
+            
+            body, html {
+                margin: 0px;
+                background-color: #848484;
+                margin: 0px;
+            }
+            
+            #base {
+                position: relative;
+                width: 100vw;
+                max-width: 100vh;
+                height: 100vh;
+                max-height: 100vw;
+                margin: auto;
+            }
+            @media only screen and (orientation : portrait) {
+                body, html {
+                    position: fixed;
+                }
+                #base {
+                    top: calc((100vh - 100vw) / 2);
+                }
+            }
+            @media only screen and (orientation : landscape) {
+                body, html {
+                    background: linear-gradient(-60deg, #282828, #D6D6D5);
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                }
+            }
+            
+            .element {
+                position: absolute;
+                width: 20%;
+                height: 20%;
+                border-radius: 50%;
+                cursor: pointer;
+            }
+            .element.row0 {
+                top: 0%;
+            }
+            .element.row20 {
+                top: 20%;
+            }
+            .element.row40 {
+                top: 40%;
+            }
+            .element.row60 {
+                top: 60%;
+            }
+            .element.row80 {
+                top: 80%;
+            }
+            .element.col0 {
+                left: 0%;
+            }
+            .element.col20 {
+                left: 20%;
+            }
+            .element.col40 {
+                left: 40%;
+            }
+            .element.col60 {
+                left: 60%;
+            }
+            .element.col80 {
+                left: 80%;
+            }
+            .element.animated {
+                transition: all 0.201s;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="late_links.css">
+    </head>
+    <body ondragstart="return false;" ondrop="return false;">
+        
+        <div id="base"></div>
+        
+        <div class="aside">
+            <div class="square_link" onclick="location.href='radial.html'"></div>
+        </div>
+        <div class="aside right">
+            <div class="square_link right" onclick="location.href='index.html'"></div>
+        </div>
+        
+        <script type="text/javascript">
+            
+            function iD (x) {
+                return document.getElementById(x);
+            }
+            var playground = iD("base");
+            
+            var translations = {
+                mouse: {
+                    begin: function (ev) {
+                        ev.preventDefault();
+                        return [ ev.pageX, ev.pageY ];
+                    },
+                    move: function (ev) {
+                        return [ ev.pageX, ev.pageY ];
+                    }
+                },
+                touch: {
+                    begin: function (ev) {
+                        ev.preventDefault();
+                        return [ ev.touches[0].pageX, ev.touches[0].pageY ];
+                    },
+                    move: function (ev) {
+                        ev.preventDefault();
+                        return [ ev.targetTouches[0].pageX, ev.targetTouches[0].pageY ];
+                    }
+                }
+            };
+            
+            var event_identifier = "mouse";
+            if( navigator.userAgent.match(/android|iphone|ipad|mobile|surface/i) ) {
+                try {
+                    var dummy = new TouchEvent("touchstart");
+                    event_identifier = "touch";
+                }
+                catch (e) {}
+            }
+            
+            function Moving (element, coordinates) {
+                
+                var timestamp = 0;
+                
+                function finish (ev) {
+                    
+                    if ( event_identifier == "touch" ) {
+                        playground.removeEventListener("touchmove", move);
+                        playground.removeEventListener("touchcancel", finish, false);
+                        playground.removeEventListener("touchend", finish);
+                    }
+                    else {
+                        cloned.removeEventListener("touchmove", move);
+                        cloned.removeEventListener("touchcancel", finish);
+                        cloned.removeEventListener("touchend", finish);
+                    }
+                    
+                    cloned.parentNode.removeChild(cloned);
+                    
+                    element.style.visibility = "visible";
+                }
+                
+                function move (ev) {
+                    
+                    var interaction_coordinates = translations[event_identifier].move(ev);
+                    
+                    cloned.style.left = (interaction_coordinates[0] - (width / 2)) + "px";
+                    cloned.style.top = (interaction_coordinates[1] - (height / 2)) + "px";
+                    
+                    var tmp_col = Math.abs(Math.round(5 * (interaction_coordinates[0] - rect.left - (width / 2)) / rect.width) * 20);
+                    var tmp_row = Math.abs(Math.round(5 * (interaction_coordinates[1] - rect.top - (height / 2)) / rect.height) * 20);
+                    
+                    if ( tmp_col == col && tmp_row == row )
+                        return;
+                    
+                    var new_timestamp = (new Date()).getTime();
+                    if ( (new_timestamp - timestamp) < 201 )
+                        return;
+                    
+                    timestamp = new_timestamp;
+                    
+                    var elements, i;
+                    if ( !element.classList.contains("col" + tmp_col) ) {
+                        elements = document.getElementsByClassName("col" + tmp_col);
+                        for ( i = 0; i < elements.length; i++ ) {
+                            if ( elements[i].classList.contains("row" + row) ) {
+                                elements[i].addEventListener("transitionend", function (ev) {
+                                    ev.target.classList.remove("animated");
+                                    ev.target.style.zIndex = 0;
+                                }, true);
+                                elements[i].style.zIndex = 1;
+                                elements[i].className = "element row" + row + " col" + col + " animated";
+                                element.className = "element row" + row + " col" + tmp_col;
+                                col = tmp_col;
+                                return;
+                            }
+                        }
+                    }
+                    if ( !element.classList.contains("row" + tmp_row) ) {
+                        elements = document.getElementsByClassName("row" + tmp_row);
+                        for ( i = 0; i < elements.length; i++ ) {
+                            if ( elements[i].classList.contains("col" + col) ) {
+                                elements[i].addEventListener("transitionend", function (ev) {
+                                    ev.target.classList.remove("animated");
+                                    ev.target.style.zIndex = 0;
+                                }, true);
+                                elements[i].style.zIndex = 1;
+                                elements[i].className = "element row" + row + " col" + col + " animated";
+                                element.className = "element row" + tmp_row + " col" + col;
+                                row = tmp_row;
+                                return;
+                            }
+                        }
+                    }
+                }
+                
+                
+                var rect = element.getBoundingClientRect();
+                var width = Math.round(rect.width);
+                var height = Math.round(rect.height);
+                
+                rect = playground.getBoundingClientRect();
+                
+                var cloned = element.cloneNode(false);
+                cloned.style.width = width + "px";
+                cloned.style.height = height + "px";
+                cloned.style.zIndex = 2;
+                cloned.style.left = (coordinates[0] - (width / 2)) + "px";
+                cloned.style.top = (coordinates[1] - (height / 2)) + "px";
+                cloned.rot = 0;
+                
+                var row, col;
+                for ( var i = 0; i < element.classList.length; i++ ) {
+                    if ( element.classList[i].match(/row/) )
+                        row = parseInt(element.classList[i].replace(/row/, ""));
+                    if ( element.classList[i].match(/col/) )
+                        col = parseInt(element.classList[i].replace(/col/, ""));
+                }
+                if ( row == null ) {
+                    row = Math.abs(Math.round(5 * (coordinates[1] - rect.top - (height / 2)) / rect.height) * 20);
+                    element.classList.add("row" + row);
+                }
+                if ( col == null ) {
+                    col = Math.abs(Math.round(5 * (coordinates[0] - rect.left - (width / 2)) / rect.width) * 20);
+                    element.classList.add("col" + col);
+                }
+                
+                if ( event_identifier == "touch" ) {
+                    playground.addEventListener("touchmove", move);
+                    playground.addEventListener("touchcancel", finish, false);
+                    playground.addEventListener("touchend", finish);
+                }
+                else {
+                    cloned.addEventListener("mousemove", move);
+                    cloned.addEventListener("mouseleave", finish);
+                    cloned.addEventListener("mouseup", finish);
+                }
+                
+                element.style.visibility = "hidden";
+                document.body.appendChild(cloned);
+            }
+            
+            
+            function make_colours () {
+                
+                var colours = [ "#", [] ];
+                var tmp;
+                for ( var i = 0; i < 3; i++ ) {
+                    tmp = Math.floor(Math.random() * 192);
+                    colours[0] += (tmp + 64).toString(16);
+                    colours[1].push( parseInt(tmp / 4) + 16 );
+                }
+                
+                return colours;
+            }
+            var i, j, el, colours;
+            for ( i = 0; i < 5; i++ ) {
+                for ( j = 0; j < 5; j++ ) {
+                    el = document.createElement("div");
+                    el.classList.add("element");
+                    el.classList.add("row" + (i * 20));
+                    el.classList.add("col" + (j * 20));
+                    colours = make_colours();
+                    el.style.background = "radial-gradient(at " + (j * 2.5 + 42.5 + Math.round(Math.random() * 5)) + "% " + (i * 2.5 + 42.5 + Math.round(Math.random() * 5)) + "%, " + colours[0] + ", rgba(" + colours[1][0] + ", " + colours[1][1] + ", " + colours[1][2] + ", 0.92))";
+                    var start_event = (event_identifier == "mouse") ? "mousedown" : "touchstart";
+                    el.addEventListener(start_event, function (ev) {
+                        new Moving(ev.target, translations[event_identifier].begin(ev), false);
+                    }, false);
+                    playground.appendChild(el);
+                }
+            }
+            
+            
+            var elements = document.getElementsByClassName("aside");
+            for ( var element_counter = 0; element_counter < elements.length; element_counter++ )
+                elements[element_counter].style.display = "block";
+            setTimeout(function (elements) {
+                for ( var i = 0; i < elements.length; i++ )
+                    elements[i].classList.add("fading");
+            }, 5000, elements);
+            
+            
+        </script>
+        
+    </body>
+</html>
