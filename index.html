@@ -271,8 +271,7 @@
                         ev.preventDefault();
                         var element = ev.touches[0].target;
                         var size = element.get_size();
-                        
-                        element.start(ev.pageX, ev.pageY, size);
+                        element.start(ev.touches[0].pageX, ev.touches[0].pageY, size);
                         
                         element.touchcancel = function (ev) {
                             touchcancel(ev, element);
@@ -324,7 +323,7 @@
                     
                     var targets;
                     
-                    function start (pageX, pageY, size) {                        
+                    function start (pageX, pageY, size) {
                         element.cloned = element.cloneNode(true);
                         element.cloned.style.position = "absolute";
                         element.cloned.style.width = size.w + "px";
